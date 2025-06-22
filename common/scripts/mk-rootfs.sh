@@ -224,6 +224,48 @@ build_debian()
 	finish_build build_debian $@
 }
 
+build_ubuntu()
+{
+	check_config RK_UBUNTU || false
+
+	IMAGE_DIR="${1:-$RK_OUTDIR/ubuntu}"
+	ARCH=${RK_UBUNTU_ARCH:-armhf}
+
+	# "$RK_SCRIPTS_DIR/check-ubuntu.sh"
+
+	message "=========================================="
+	message "          Start building $RK_UBUNTU_VERSION($ARCH)"
+	message "=========================================="
+
+	cd "$RK_UBUNTU_NUMBER"
+
+	## Not always using full build
+	if [ -f $RK_ROOTFS_IMAGE ]; then
+	# image build with SDK
+		notice "[    Already Exists IMG,  Skip Make Ubuntu Scripts    ]"
+		notice "[ Delate $RK_ROOTFS_IMAGE To Rebuild Ubuntu IMG ]"
+		ln -rsf "$PWD/$RK_ROOTFS_IMAGE" "$IMAGE_DIR/rootfs.ext4"
+	elif [ -f ubuntu-$RK_ROOTFS_TARGET-rootfs.img  ]; then
+	# image build with ubuntu scripts
+		notice Use ubuntu-$RK_ROOTFS_TARGET-rootfs.img to build update.img
+		ln -rsf "$PWD/ubuntu-$RK_ROOTFS_TARGET-rootfs.img" \
+			"$IMAGE_DIR/rootfs.ext4"
+	else
+	# building iamge
+		notice "No $RK_ROOTFS_IMAGE, Run Make Ubuntu Scripts"
+			if [ ! -f ubuntu-base-$RK_ROOTFS_TARGET-$ARCH-*.tar.gz ]; then
+				notice "build ubuntu-base-$RK_ROOTFS_TARGET-$ARCH-*.tar.gz"
+				TARGET=$RK_ROOTFS_TARGET ARCH=$ARCH ./mk-base-ubuntu.sh
+			fi
+		TARGET=$RK_ROOTFS_TARGET VERSION=$RK_ROOTFS_DEBUG \
+		RK_ROOTFS_IMAGE=$RK_ROOTFS_IMAGE SOC=$RK_CHIP ARCH=$ARCH \
+			./mk-ubuntu-rootfs.sh
+		ln -rsf "$PWD/$RK_ROOTFS_IMAGE" "$IMAGE_DIR/rootfs.ext4"
+	fi
+
+	finish_build build_ubuntu $@
+}
+
 # Hooks
 
 usage_hook()
@@ -238,6 +280,7 @@ usage_hook()
 	usage_oneline "buildroot" "build buildroot rootfs"
 	usage_oneline "yocto" "build yocto rootfs"
 	usage_oneline "debian" "build debian rootfs"
+	usage_oneline "ubuntu" "build ubuntu rootfs"
 }
 
 clean_hook()
@@ -252,11 +295,12 @@ clean_hook()
 	rm -rf "$RK_OUTDIR/buildroot"
 	rm -rf "$RK_OUTDIR/yocto"
 	rm -rf "$RK_OUTDIR/debian"
+	rm -rf "$RK_OUTDIR/ubuntu"
 	rm -rf "$RK_OUTDIR/rootfs"
 	rm -rf "$RK_FIRMWARE_DIR/rootfs.img"
 }
 
-INIT_CMDS="default buildroot debian yocto"
+INIT_CMDS="default buildroot debian ubuntu yocto"
 init_hook()
 {
 	load_config RK_ROOTFS
@@ -320,7 +364,7 @@ pre_build_hook()
 	esac
 }
 
-BUILD_CMDS="rootfs buildroot debian yocto"
+BUILD_CMDS="rootfs buildroot debian ubuntu yocto"
 build_hook()
 {
 	check_config RK_ROOTFS || false
@@ -340,7 +384,7 @@ build_hook()
 	message "=========================================="
 
 	case "$ROOTFS" in
-		yocto | debian | buildroot) ;;
+		yocto | debian | ubuntu | buildroot) ;;
 		*) usage ;;
 	esac
 
@@ -352,6 +396,7 @@ build_hook()
 	case "$ROOTFS" in
 		yocto) build_yocto "$IMAGE_DIR" ;;
 		debian) build_debian "$IMAGE_DIR" ;;
+		ubuntu) build_ubuntu "$IMAGE_DIR" ;;
 		buildroot) build_buildroot "$IMAGE_DIR" ;;
 	esac
 	touch "$ROOTFS_DIR/.stamp_build_finish"
@@ -406,6 +451,7 @@ source "${RK_BUILD_HELPER:-$(dirname "$(realpath "$0")")/build-helper}"
 case "${1:-rootfs}" in
 	buildroot-config | bconfig | buildroot-make | bmake) pre_build_hook $@ ;;
 	buildroot-sdk | bsdk) post_build_hook $@ ;;
-	buildroot | debian | yocto) init_hook $@ ;&
+	buildroot | debian | ubuntu | yocto) init_hook $@ ;&
 	*) build_hook $@ ;;
 esac
+
