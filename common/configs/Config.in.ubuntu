@@ -22,23 +22,23 @@ if RK_UBUNTU
 
 config RK_UBUNTU_VERSION
 	string
-	default "focal" if RK_UBUNTU_FOCAL
 	default "jammy" if RK_UBUNTU_JAMMY
+	default "noble" if RK_UBUNTU_NOBLE
 
 config RK_UBUNTU_NUMBER
 	string
-	default "ubuntu20.04" if RK_UBUNTU_FOCAL
 	default "ubuntu22.04" if RK_UBUNTU_JAMMY
+	default "ubuntu24.04" if RK_UBUNTU_NOBLE
 
 choice
 	prompt "distro"
 	default RK_UBUNTU_JAMMY
 
-config RK_UBUNTU_FOCAL
-	bool "focal"
-
 config RK_UBUNTU_JAMMY
 	bool "jammy"
+
+config RK_UBUNTU_NOBLE
+	bool "noble"
 
 endchoice # distro
 
