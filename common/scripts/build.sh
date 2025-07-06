@@ -419,6 +419,13 @@ setup_environments()
 	RK_MAKE_USAGE="$RK_OUTDIR/.make_usage"
 }
 
+setup_developer_environments()
+{
+	if [ -e $RK_SDK_DIR/devenv ]; then
+		source $RK_SDK_DIR/devenv
+	fi
+}
+
 check_sdk() {
 	if ! echo "$RK_SCRIPTS_DIR" | \
 		grep -q "device/rockchip/common/scripts$"; then
@@ -445,7 +452,7 @@ parse_scripts()
 
 	if [ ! -r "$RK_MAKE_USAGE" ] || \
 		[ "$(find "$RK_SCRIPTS_DIR" "$RK_CHIP_DIR" "$RK_CHIP_DIR/" \
-			-cnewer "$RK_MAKE_USAGE" 2>/dev/null)" ]; then
+			-cnewer "$RK_MAKE_USAGE")" ]; then
 		{
 			TEMP_FILE=$(mktemp -u)
 
@@ -465,7 +472,7 @@ parse_scripts()
 
 	if [ ! -r "$RK_PARSED_CMDS" ] || \
 		[ "$(find "$RK_SCRIPTS_DIR" "$RK_CHIP_DIR" "$RK_CHIP_DIR/" \
-			-cnewer "$RK_PARSED_CMDS" 2>/dev/null)" ]; then
+			-cnewer "$RK_PARSED_CMDS")" ]; then
 		{
 			TEMP_FILE=$(mktemp -u)
 			{
@@ -517,6 +524,9 @@ main()
 
 	# Setup basic environments
 	setup_environments
+
+	# Setup developer environments
+	setup_developer_environments
 
 	# Log SDK information
 	MANIFEST="$RK_SDK_DIR/.repo/manifest.xml"

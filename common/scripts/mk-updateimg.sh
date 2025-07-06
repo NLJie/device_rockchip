@@ -89,6 +89,17 @@ do_build_updateimg()
 
 	# Prepare images
 	ln -rsf "$RK_FIRMWARE_DIR"/* .
+
+	if [ "$RK_KERNEL_EXTBOOT" = "y" ]; then
+		mkdir -p mount-tmp
+		echo mount and write build info
+		sudo mount rootfs.img mount-tmp/
+		sudo sh -c "echo ' * $RK_PACKAGE_NAME' > mount-tmp/etc/build-release"
+		sudo sync 
+		sudo umount mount-tmp/
+		rm -rf mount-tmp/
+	fi
+
 	rm -f update.img
 
 	# Prepare package-file
@@ -112,7 +123,7 @@ do_build_updateimg()
 		exit 1
 	fi
 
-	TAG=RK$(dd if=MiniLoaderAll.bin bs=1 count=4 skip=21 status=none | rev)
+	TAG=RK$(hexdump -s 21 -n 4 -e '4 "%c"' MiniLoaderAll.bin | rev)
 	"$RK_PACK_TOOL_DIR/afptool" -pack ./ update.raw.img
 	"$RK_PACK_TOOL_DIR/rkImageMaker" -$TAG MiniLoaderAll.bin \
 		update.raw.img update.img -os_type:androidos \

@@ -131,8 +131,6 @@ build_yocto()
 			fi
 
 			if [ "$RK_CHIP_HAS_GPU" ]; then
-				echo "include include/glmark2.conf"
-
 				if [ "$RK_YOCTO_CHROMIUM" ]; then
 					echo "include include/browser.conf"
 				fi
@@ -197,29 +195,32 @@ build_debian()
 	message "          Start building $RK_DEBIAN_VERSION($ARCH)"
 	message "=========================================="
 
-	cd debian
-	if [ ! -f linaro-$RK_DEBIAN_VERSION-alip-*.tar.gz ]; then
-		RELEASE=$RK_DEBIAN_VERSION TARGET=desktop ARCH=$ARCH \
-			./mk-base-debian.sh
-		ln -sf linaro-$RK_DEBIAN_VERSION-alip-*.tar.gz \
-			linaro-$RK_DEBIAN_VERSION-$ARCH.tar.gz
+	cd "$RK_DEBIAN_NUMBER"
+
+	## Not always using full build
+	if [ -f $RK_ROOTFS_IMAGE ]; then
+	# image build with SDK
+		notice "[    Already Exists IMG,  Skip Make Debian Scripts    ]"
+		notice "[ Delate $RK_ROOTFS_IMAGE To Rebuild Debian IMG ]"
+		ln -rsf "$PWD/$RK_ROOTFS_IMAGE" "$IMAGE_DIR/rootfs.ext4"
+	elif [ -f linaro-$RK_ROOTFS_TARGET-rootfs.img  ]; then
+	# image build with debian scripts
+		notice Use linaro-$RK_ROOTFS_TARGET-rootfs.img to build update.img
+		ln -rsf "$PWD/linaro-$RK_ROOTFS_TARGET-rootfs.img" \
+			"$IMAGE_DIR/rootfs.ext4"
+	else
+	# building iamge
+		notice "No $RK_ROOTFS_IMAGE, Run Make Debian Scripts"
+			if [ ! -f linaro-$RK_DEBIAN_VERSION-$RK_ROOTFS_TARGET-$ARCH-alip-*.tar.gz ]; then
+				notice "build linaro-$RK_DEBIAN_VERSION-$RK_ROOTFS_TARGET-$ARCH-alip-*.tar.gz"
+				RELEASE=$RK_DEBIAN_VERSION TARGET=$RK_ROOTFS_TARGET ARCH=$ARCH \
+					./mk-base-debian.sh
+			fi
+		RELEASE=$RK_DEBIAN_VERSION TARGET=$RK_ROOTFS_TARGET VERSION=$RK_ROOTFS_DEBUG \
+		RK_ROOTFS_IMAGE=$RK_ROOTFS_IMAGE SOC=$RK_CHIP ARCH=$ARCH \
+			./mk-rootfs.sh
+		ln -rsf "$PWD/$RK_ROOTFS_IMAGE" "$IMAGE_DIR/rootfs.ext4"
 	fi
-
-	DEBIAN_SCRIPT=mk-rootfs-$RK_DEBIAN_VERSION.sh
-
-	if [ "$RK_DEBIAN_MIRROR" ]; then
-		notice "Using mirror source $RK_DEBIAN_MIRROR in $DEBIAN_SCRIPT..."
-		sed -i "s#\(http://\)[^/]*#\1$RK_DEBIAN_MIRROR#" "$DEBIAN_SCRIPT"
-	fi
-
-	VERSION=debug ARCH=$ARCH ./$DEBIAN_SCRIPT
-	./mk-image.sh
-
-	if ! [ -r "$RK_LOG_DIR/post-rootfs.log" ]; then
-		warning "Building without post-rootfs stage!"
-	fi
-
-	ln -rsf "$PWD/linaro-rootfs.img" "$IMAGE_DIR/rootfs.ext4"
 
 	finish_build build_debian $@
 }
@@ -286,7 +287,7 @@ usage_hook()
 clean_hook()
 {
 	rm -rf yocto/build/tmp yocto/build/*cache
-	rm -rf debian/binary
+	sudo rm -rf debian/binary
 
 	if check_config RK_BUILDROOT &>/dev/null; then
 		rm -rf buildroot/output/$RK_BUILDROOT_CFG
@@ -454,4 +455,3 @@ case "${1:-rootfs}" in
 	buildroot | debian | ubuntu | yocto) init_hook $@ ;&
 	*) build_hook $@ ;;
 esac
-
