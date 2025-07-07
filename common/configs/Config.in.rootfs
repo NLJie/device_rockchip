@@ -50,6 +50,7 @@ config RK_ROOTFS_INITRD
 	# Based on kernel/init/do_mounts_rd.c identify_ramdisk_image()
 	depends on RK_ROOTFS_EXT2 || RK_ROOTFS_SQUASHFS || RK_ROOTFS_ROMFS || \
 		RK_ROOTFS_CPIO || RK_ROOTFS_CPIO_GZ
+
 if RK_ROOTFS_SYSTEM="debian" || RK_ROOTFS_SYSTEM="ubuntu"
 
 config RK_ROOTFS_TARGET

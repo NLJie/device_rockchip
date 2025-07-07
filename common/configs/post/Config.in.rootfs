@@ -2,8 +2,6 @@
 
 menu "Post rootfs installs"
 
-source "post/Config.in.overlay"
-
 config RK_ROOTFS_LD_CACHE
 	bool "create /etc/ld.so.cache"
 	default y
